@@ -58,7 +58,8 @@ export default function Stock() {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:3001/api/etiquetas/stock', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_URL}/api/etiquetas/stock`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
