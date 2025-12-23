@@ -3,7 +3,9 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Download, Upload, X } from 'lucide-react';
-import Image from 'next/image';
+
+// ✅ CONFIGURACIÓN DE API
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function Stock() {
   const router = useRouter();
@@ -22,13 +24,11 @@ export default function Stock() {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validar tipo de archivo
       if (!file.type.startsWith('image/')) {
         alert('Por favor selecciona una imagen válida (PNG, JPG, etc.)');
         return;
       }
 
-      // Validar tamaño (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert('La imagen es muy pesada. Máximo 5MB');
         return;
@@ -58,7 +58,8 @@ export default function Stock() {
     setLoading(true);
     
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      console.log('🔧 Conectando a:', `${API_URL}/api/etiquetas/stock`);
+      
       const response = await fetch(`${API_URL}/api/etiquetas/stock`, {
         method: 'POST',
         headers: {
@@ -67,13 +68,14 @@ export default function Stock() {
         body: JSON.stringify({
           precioOriginal: etiqueta.precioOriginal,
           precioDescuento: etiqueta.precioDescuento,
-          logo: logo, // Base64 del logo
+          logo: logo,
           cantidad: cantidad
         })
       });
 
       if (!response.ok) {
-        throw new Error('Error al generar PDF');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
 
       const blob = await response.blob();
@@ -91,8 +93,8 @@ export default function Stock() {
       alert('¡PDF generado! Ahora puedes imprimirlo desde tu visor de PDFs.');
       
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error al generar el PDF. Asegúrate de que el backend esté corriendo.');
+      console.error('❌ Error completo:', error);
+      alert(`Error al generar el PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -101,7 +103,6 @@ export default function Stock() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <button
           onClick={() => router.push('/tipo-etiqueta')}
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 md:mb-8 group"
@@ -115,11 +116,9 @@ export default function Stock() {
         </h1>
 
         <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
-          {/* Panel de Edición */}
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-4 md:p-6">
             <h2 className="text-lg md:text-xl font-bold text-white mb-4 md:mb-6">Configurar Etiqueta</h2>
 
-            {/* Logo Upload */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Logo de tu Empresa
@@ -158,7 +157,6 @@ export default function Stock() {
               />
             </div>
 
-            {/* Precio Original */}
             <div className="mb-4 md:mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Precio Original (De:)
@@ -175,7 +173,6 @@ export default function Stock() {
               </div>
             </div>
 
-            {/* Precio en Descuento */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Precio en Descuento (A:)
@@ -195,7 +192,6 @@ export default function Stock() {
               </p>
             </div>
 
-            {/* Cantidad */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Cantidad de Etiquetas
@@ -213,7 +209,6 @@ export default function Stock() {
               </p>
             </div>
 
-            {/* Botón Generar PDF */}
             <button
               onClick={generarPDF}
               disabled={loading || !logo}
@@ -237,7 +232,6 @@ export default function Stock() {
             </p>
           </div>
 
-          {/* Vista Previa */}
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-4 md:p-6">
             <h2 className="text-lg md:text-xl font-bold text-white mb-4 md:mb-6">Vista Previa</h2>
             
@@ -248,7 +242,6 @@ export default function Stock() {
                 style={{ minWidth: '280px', minHeight: '180px', maxWidth: '100%' }}
               >
                 <div className="flex flex-col items-center justify-center h-full gap-3 md:gap-4">
-                  {/* Logo */}
                   <div className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center">
                     {logo ? (
                       <img src={logo} alt="Logo" className="max-w-full max-h-full object-contain" />
@@ -259,7 +252,6 @@ export default function Stock() {
                     )}
                   </div>
                   
-                  {/* Precio Original (De:) */}
                   <div className="text-center">
                     <p className="text-sm md:text-base font-bold text-slate-600">De:</p>
                     <p className="text-xl md:text-2xl font-bold text-red-600 line-through">
@@ -267,7 +259,6 @@ export default function Stock() {
                     </p>
                   </div>
 
-                  {/* Precio Descuento (A:) - GRANDE */}
                   <div className="border-4 border-green-500 rounded-lg px-4 md:px-6 py-2 md:py-3 bg-green-50">
                     <p className="text-base md:text-lg font-black text-slate-800">A:</p>
                     <p className="text-4xl md:text-5xl font-black text-green-600">

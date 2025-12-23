@@ -2,7 +2,10 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Trash2, Printer, Download } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Download } from 'lucide-react';
+
+// ✅ CONFIGURACIÓN DE API
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function Exhibicion() {
   const router = useRouter();
@@ -38,8 +41,9 @@ export default function Exhibicion() {
     setLoading(true);
     
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_URL}/api/etiquetas/stock`,  {
+      console.log('🔧 Conectando a:', `${API_URL}/api/etiquetas/exhibicion`);
+      
+      const response = await fetch(`${API_URL}/api/etiquetas/exhibicion`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,31 +56,27 @@ export default function Exhibicion() {
       });
 
       if (!response.ok) {
-        throw new Error('Error al generar PDF');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
 
-      // Convertir respuesta a blob
       const blob = await response.blob();
-      
-      // Crear URL temporal
       const url = window.URL.createObjectURL(blob);
       
-      // Crear link de descarga
       const a = document.createElement('a');
       a.href = url;
       a.download = `etiquetas-exhibicion-${Date.now()}.pdf`;
       document.body.appendChild(a);
       a.click();
       
-      // Limpiar
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
       alert('¡PDF generado! Ahora puedes imprimirlo desde tu visor de PDFs.');
       
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error al generar el PDF. Asegúrate de que el backend esté corriendo.');
+      console.error('❌ Error completo:', error);
+      alert(`Error al generar el PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,6 @@ export default function Exhibicion() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <button
           onClick={() => router.push('/tipo-etiqueta')}
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 group"
@@ -99,11 +98,9 @@ export default function Exhibicion() {
         </h1>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Panel de Edición */}
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6">
             <h2 className="text-xl font-bold text-white mb-6">Editar Etiqueta</h2>
 
-            {/* Título del Producto */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Título del Producto
@@ -117,7 +114,6 @@ export default function Exhibicion() {
               />
             </div>
 
-            {/* Especificaciones */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Especificaciones
@@ -158,7 +154,6 @@ export default function Exhibicion() {
               </div>
             </div>
 
-            {/* Cantidad */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Cantidad de Etiquetas
@@ -176,7 +171,6 @@ export default function Exhibicion() {
               </p>
             </div>
 
-            {/* Botón Generar PDF */}
             <button
               onClick={generarPDF}
               disabled={loading}
@@ -200,18 +194,15 @@ export default function Exhibicion() {
             </p>
           </div>
 
-          {/* Vista Previa */}
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6">
             <h2 className="text-xl font-bold text-white mb-6">Vista Previa</h2>
             
             <div className="flex items-center justify-center">
               <div ref={printRef} className="bg-white rounded-lg p-6 shadow-2xl" style={{ width: '250px' }}>
-                {/* Título en Rojo */}
                 <h3 className="text-3xl font-bold text-red-600 mb-4 text-center">
                   {etiqueta.titulo}
                 </h3>
                 
-                {/* Especificaciones en Azul */}
                 <div className="space-y-2">
                   {etiqueta.especificaciones.map((espec, index) => (
                     <div key={index} className="text-blue-600 font-semibold text-lg">
