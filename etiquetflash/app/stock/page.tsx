@@ -4,8 +4,19 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Download, Upload, X } from 'lucide-react';
 
-// ✅ CONFIGURACIÓN DE API
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// ✅ Detección automática del ambiente
+const getApiUrl = () => {
+  if (typeof window !== 'undefined') {
+    // Si estamos en localhost, usar localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+  }
+  // En producción, usar Render
+  return 'https://etiquetflash.onrender.com';
+};
+
+const API_URL = getApiUrl();
 
 export default function Stock() {
   const router = useRouter();
@@ -58,9 +69,11 @@ export default function Stock() {
     setLoading(true);
     
     try {
-      console.log('🔧 Conectando a:', `${API_URL}/api/etiquetas/stock`);
+      const apiUrl = `${API_URL}/api/etiquetas/stock`;
+      console.log('🔧 API URL:', apiUrl);
+      console.log('🌍 Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'SSR');
       
-      const response = await fetch(`${API_URL}/api/etiquetas/stock`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -287,4 +300,5 @@ export default function Stock() {
     </div>
   );
 }
+
 
