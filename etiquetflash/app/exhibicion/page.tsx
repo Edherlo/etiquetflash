@@ -2,17 +2,32 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Trash2, Download } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Download, ShoppingCart } from 'lucide-react';
 
-// ✅ Detección automática del ambiente
+const FUENTES = [
+  { id: 'helvetica', nombre: 'Helvetica', familia: 'Helvetica, Arial, sans-serif' },
+  { id: 'times', nombre: 'Times New Roman', familia: '"Times New Roman", serif' },
+  { id: 'courier', nombre: 'Courier', familia: '"Courier New", monospace' },
+  { id: 'arial', nombre: 'Arial Black', familia: '"Arial Black", sans-serif' },
+  { id: 'impact', nombre: 'Impact', familia: 'Impact, sans-serif' },
+  { id: 'verdana', nombre: 'Verdana', familia: 'Verdana, sans-serif' }
+];
+
+const COLORES = [
+  { id: 'rojo', nombre: 'Rojo', valor: '#EF4444' },
+  { id: 'verde', nombre: 'Verde', valor: '#22C55E' },
+  { id: 'azul', nombre: 'Azul', valor: '#3B82F6' },
+  { id: 'naranja', nombre: 'Naranja', valor: '#F97316' },
+  { id: 'morado', nombre: 'Morado', valor: '#A855F7' },
+  { id: 'negro', nombre: 'Negro', valor: '#000000' }
+];
+
 const getApiUrl = () => {
   if (typeof window !== 'undefined') {
-    // Si estamos en localhost, usar localhost
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:3001';
     }
   }
-  // En producción, usar Render
   return 'https://etiquetflash.onrender.com';
 };
 
@@ -22,14 +37,17 @@ export default function Exhibicion() {
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
 
+  const [carrito, setCarrito] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [nuevaEspec, setNuevaEspec] = useState('');
+
   const [etiqueta, setEtiqueta] = useState({
     titulo: 'Honoy',
-    especificaciones: ['X9B', '200 lite', '12 Se', '200', '90 lite']
+    especificaciones: ['X9B', '200 lite', '12 Se', '200', '90 lite'],
+    cantidad: 1,
+    fuente: 'helvetica',
+    color: 'rojo'
   });
-
-  const [cantidad, setCantidad] = useState(1);
-  const [nuevaEspec, setNuevaEspec] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const agregarEspecificacion = () => {
     if (nuevaEspec.trim()) {
@@ -48,44 +66,70 @@ export default function Exhibicion() {
     });
   };
 
-  const generarPDF = async () => {
+  const agregarAlCarrito = () => {
+    const nuevaEtiqueta = {
+      id: Date.now(),
+      ...etiqueta
+    };
+    
+    setCarrito([...carrito, nuevaEtiqueta]);
+    alert(`✅ ${etiqueta.cantidad} etiqueta(s) agregada(s) al carrito`);
+  };
+
+  const eliminarDelCarrito = (id: number) => {
+    setCarrito(carrito.filter(item => item.id !== id));
+  };
+
+  const generarPDFFinal = async () => {
+    if (carrito.length === 0) {
+      alert('El carrito está vacío. Agrega etiquetas primero.');
+      return;
+    }
+
     setLoading(true);
     
     try {
-      const apiUrl = `${API_URL}/api/etiquetas/exhibicion`;
-      console.log('🔧 API URL:', apiUrl);
-      console.log('🌍 Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'SSR');
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          titulo: etiqueta.titulo,
-          especificaciones: etiqueta.especificaciones,
-          cantidad: cantidad
-        })
-      });
+      // Generar un PDF por cada configuración del carrito
+      for (const config of carrito) {
+        const apiUrl = `${API_URL}/api/etiquetas/exhibicion`;
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            titulo: config.titulo,
+            especificaciones: config.especificaciones,
+            cantidad: config.cantidad,
+            fuente: config.fuente,
+            color: config.color
+          })
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `etiquetas-${config.titulo}-${Date.now()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // Pequeña pausa entre descargas para evitar problemas
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `etiquetas-exhibicion-${Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      alert('¡PDF generado! Ahora puedes imprimirlo desde tu visor de PDFs.');
+      alert('¡PDFs generados exitosamente!');
+      setCarrito([]);
       
     } catch (error) {
       console.error('❌ Error completo:', error);
@@ -95,24 +139,36 @@ export default function Exhibicion() {
     }
   };
 
+  const fuenteSeleccionada = FUENTES.find(f => f.id === etiqueta.fuente);
+  const colorSeleccionado = COLORES.find(c => c.id === etiqueta.color);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
         <button
           onClick={() => router.push('/tipo-etiqueta')}
-          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 group"
+          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 md:mb-8 group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span className="font-medium">Volver</span>
         </button>
 
-        <h1 className="text-4xl font-black text-white mb-8">
-          Etiquetas de <span className="text-red-500">Exhibición</span>
-        </h1>
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+          <h1 className="text-3xl md:text-4xl font-black text-white">
+            Etiquetas de <span className="text-red-500">Exhibición</span>
+          </h1>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6">
-            <h2 className="text-xl font-bold text-white mb-6">Editar Etiqueta</h2>
+          <div className="flex items-center gap-3 bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
+            <ShoppingCart className="w-5 h-5 text-red-400" />
+            <span className="text-white font-bold">{carrito.length}</span>
+            <span className="text-slate-400 text-sm">etiquetas</span>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Panel de Configuración */}
+          <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-bold text-white mb-4 md:mb-6">Editar Etiqueta</h2>
 
             <div className="mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -167,16 +223,48 @@ export default function Exhibicion() {
               </div>
             </div>
 
+            {/* Selector de Fuente */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Cantidad de Etiquetas
+                Fuente del Título
+              </label>
+              <select
+                value={etiqueta.fuente}
+                onChange={(e) => setEtiqueta({...etiqueta, fuente: e.target.value})}
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                {FUENTES.map(f => (
+                  <option key={f.id} value={f.id}>{f.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Selector de Color */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Color del Título
+              </label>
+              <select
+                value={etiqueta.color}
+                onChange={(e) => setEtiqueta({...etiqueta, color: e.target.value})}
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                {COLORES.map(c => (
+                  <option key={c.id} value={c.id}>🎨 {c.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Cantidad de esta Etiqueta
               </label>
               <input
                 type="number"
                 min="1"
                 max="100"
-                value={cantidad}
-                onChange={(e) => setCantidad(parseInt(e.target.value) || 1)}
+                value={etiqueta.cantidad}
+                onChange={(e) => setEtiqueta({...etiqueta, cantidad: parseInt(e.target.value) || 1})}
                 className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
               />
               <p className="text-slate-400 text-xs mt-2">
@@ -185,57 +273,98 @@ export default function Exhibicion() {
             </div>
 
             <button
-              onClick={generarPDF}
-              disabled={loading}
-              className="w-full px-6 py-4 bg-gradient-to-r from-red-500 to-blue-500 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-red-500/50 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={agregarAlCarrito}
+              className="w-full px-4 md:px-6 py-3 md:py-4 bg-gradient-to-r from-red-500 to-blue-500 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-red-500/50 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-sm md:text-base"
             >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Generando...
-                </>
-              ) : (
-                <>
-                  <Download className="w-5 h-5" />
-                  Generar PDF ({cantidad} etiquetas)
-                </>
-              )}
+              <Plus className="w-5 h-5" />
+              Agregar al Carrito
             </button>
-
-            <p className="text-slate-400 text-xs text-center mt-3">
-              💡 El PDF se descargará y podrás imprimirlo con Ctrl+P
-            </p>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6">
-            <h2 className="text-xl font-bold text-white mb-6">Vista Previa</h2>
-            
-            <div className="flex items-center justify-center">
-              <div ref={printRef} className="bg-white rounded-lg p-6 shadow-2xl" style={{ width: '250px' }}>
-                <h3 className="text-3xl font-bold text-red-600 mb-4 text-center">
-                  {etiqueta.titulo}
-                </h3>
-                
-                <div className="space-y-2">
-                  {etiqueta.especificaciones.map((espec, index) => (
-                    <div key={index} className="text-blue-600 font-semibold text-lg">
-                      • {espec}
-                    </div>
-                  ))}
+          {/* Panel Vista Previa y Carrito */}
+          <div className="space-y-6">
+            {/* Vista Previa */}
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-4 md:p-6">
+              <h2 className="text-lg md:text-xl font-bold text-white mb-4 md:mb-6">Vista Previa</h2>
+              
+              <div className="flex items-center justify-center">
+                <div 
+                  ref={printRef} 
+                  className="bg-white rounded-lg p-6 shadow-2xl" 
+                  style={{ width: '180px', minHeight: '240px' }}
+                >
+                  <h3 
+                    className="text-2xl font-bold mb-4 text-center break-words"
+                    style={{ 
+                      color: colorSeleccionado?.valor,
+                      fontFamily: fuenteSeleccionada?.familia 
+                    }}
+                  >
+                    {etiqueta.titulo}
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    {etiqueta.especificaciones.map((espec, index) => (
+                      <div key={index} className="text-blue-600 font-semibold text-sm break-words">
+                        • {espec}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 bg-slate-900 rounded-lg p-4 border border-slate-700">
-              <h3 className="text-sm font-bold text-white mb-2">📋 Instrucciones:</h3>
-              <ul className="text-xs text-slate-300 space-y-1">
-                <li>1. Genera el PDF con el botón de arriba</li>
-                <li>2. Abre el PDF descargado</li>
-                <li>3. Presiona Ctrl+P para imprimir</li>
-                <li>4. Selecciona tu Epson L220</li>
-                <li>5. Elige papel normal o adhesivo</li>
-                <li>6. ¡Listo! Recorta las etiquetas</li>
-              </ul>
+            {/* Carrito */}
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-4 md:p-6">
+              <h2 className="text-lg font-bold text-white mb-4">Carrito</h2>
+              
+              {carrito.length === 0 ? (
+                <p className="text-slate-400 text-sm text-center py-8">
+                  El carrito está vacío
+                </p>
+              ) : (
+                <>
+                  <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
+                    {carrito.map((item, index) => (
+                      <div key={item.id} className="bg-slate-900 rounded-lg p-3 flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-bold text-sm">Etiqueta #{index + 1}</p>
+                          <p className="text-slate-400 text-xs truncate">
+                            {item.titulo} ({item.cantidad}x)
+                          </p>
+                          <p className="text-slate-500 text-xs">
+                            {item.especificaciones.length} especificaciones
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => eliminarDelCarrito(item.id)}
+                          className="text-red-400 hover:text-red-300 p-2 flex-shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={generarPDFFinal}
+                    disabled={loading}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        Generando...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-5 h-5" />
+                        Generar PDFs ({carrito.reduce((sum, item) => sum + item.cantidad, 0)})
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -243,4 +372,5 @@ export default function Exhibicion() {
     </div>
   );
 }
+
 
