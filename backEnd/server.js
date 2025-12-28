@@ -8,18 +8,27 @@ const PORT = process.env.PORT || 3001;
 // ✅ CORS actualizado - acepta múltiples orígenes
 const allowedOrigins = [
   'https://etiquetflash.vercel.app',
+  'https://etiquetflash-onmol10z-edherlos-projects.vercel.app',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
 
 app.use(cors({
   origin: function(origin, callback) {
+    // Permitir requests sin origin (mobile apps, Postman, etc)
     if (!origin) return callback(null, true);
+    
+    // Verificar si está en la lista de orígenes permitidos
     if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('No permitido por CORS'));
+      return callback(null, true);
     }
+    
+    // Permitir cualquier subdominio de Vercel (*.vercel.app)
+    if (origin.includes('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('No permitido por CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
