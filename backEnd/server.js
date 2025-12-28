@@ -256,7 +256,92 @@ app.post('/api/etiquetas/stock', async (req, res) => {
     res.status(500).json({ error: 'Error al generar PDF', details: error.message });
   }
 });
+// 🆕 NUEVO ENDPOINT - Sistema Acumulativo para Etiquetas de Exhibición
+app.post('/api/etiquetas/exhibicion-batch', async (req, res) => {
+  try {
+    const { etiquetas } = req.body;
+    
+    if (!etiquetas || etiquetas.length === 0) {
+      return res.status(400).json({ error: 'No hay etiquetas para generar' });
+    }
 
+    console.log('📦 Generando PDF Exhibición Batch:', etiquetas.length, 'configuraciones');
+    
+    const doc = new PDFDocument({ size: 'LETTER', margin: 20 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=etiquetas-exhibicion-${Date.now()}.pdf`);
+    doc.pipe(res);
+
+    const etiquetaWidth = SIZES.etiquetaExhibicion.width;
+    const etiquetaHeight = SIZES.etiquetaExhibicion.height;
+    const margin = 20;
+    const spacing = 15;
+
+    const cols = Math.floor((SIZES.letter.width - 2 * margin) / (etiquetaWidth + spacing));
+    const rows = Math.floor((SIZES.letter.height - 2 * margin) / (etiquetaHeight + spacing));
+    const etiquetasPorPagina = cols * rows;
+
+    let currentX = margin;
+    let currentY = margin;
+    let etiquetasEnPagina = 0;
+
+    // Procesar cada configuración del carrito
+    for (const config of etiquetas) {
+      const fontInfo = FUENTES_MAP[config.fuente] || FUENTES_MAP['helvetica'];
+      const colorHex = COLORES_MAP[config.color] || '#EF4444';
+      
+      // Generar la cantidad especificada de cada etiqueta
+      for (let i = 0; i < config.cantidad; i++) {
+        if (etiquetasEnPagina >= etiquetasPorPagina) {
+          doc.addPage();
+          currentX = margin;
+          currentY = margin;
+          etiquetasEnPagina = 0;
+        }
+
+        // Dibujar borde de etiqueta
+        doc.rect(currentX, currentY, etiquetaWidth, etiquetaHeight)
+          .stroke('#CCCCCC');
+
+        // Título con fuente y color personalizados
+        doc.font(fontInfo.regular)
+          .fontSize(24 * fontInfo.size)
+          .fillColor(colorHex)
+          .text(config.titulo, currentX + 10, currentY + 20, {
+            width: etiquetaWidth - 20,
+            align: 'center'
+          });
+
+        // Especificaciones en azul
+        let specY = currentY + 60;
+        doc.font('Helvetica-Bold')
+          .fontSize(14)
+          .fillColor('#3B82F6');
+
+        config.especificaciones.forEach((espec) => {
+          doc.text(`• ${espec}`, currentX + 15, specY, { 
+            width: etiquetaWidth - 30 
+          });
+          specY += 20;
+        });
+
+        // Avanzar a siguiente posición
+        currentX += etiquetaWidth + spacing;
+        etiquetasEnPagina++;
+
+        if (etiquetasEnPagina % cols === 0) {
+          currentX = margin;
+          currentY += etiquetaHeight + spacing;
+        }
+      }
+    }
+
+    doc.end();
+  } catch (error) {
+    console.error('❌ Error generando PDF:', error);
+    res.status(500).json({ error: 'Error al generar PDF', details: error.message });
+  }
+});
 // 🆕 NUEVO ENDPOINT - Sistema Acumulativo con Múltiples Diseños
 app.post('/api/etiquetas/precio-batch', async (req, res) => {
   try {

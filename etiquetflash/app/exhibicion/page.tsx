@@ -89,46 +89,31 @@ export default function Exhibicion() {
     setLoading(true);
     
     try {
-      // Generar un PDF por cada configuración del carrito
-      for (const config of carrito) {
-        const apiUrl = `${API_URL}/api/etiquetas/exhibicion`;
-        
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            titulo: config.titulo,
-            especificaciones: config.especificaciones,
-            cantidad: config.cantidad,
-            fuente: config.fuente,
-            color: config.color
-          })
-        });
+      // ✅ AHORA USA EL NUEVO ENDPOINT BATCH - UNA SOLA PETICIÓN
+      const response = await fetch(`${API_URL}/api/etiquetas/exhibicion-batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ etiquetas: carrito })
+      });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `etiquetas-${config.titulo}-${Date.now()}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        // Pequeña pausa entre descargas para evitar problemas
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
 
-      alert('¡PDFs generados exitosamente!');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `etiquetas-exhibicion-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      alert('¡PDF generado exitosamente!');
       setCarrito([]);
       
     } catch (error) {
@@ -359,7 +344,7 @@ export default function Exhibicion() {
                     ) : (
                       <>
                         <Download className="w-5 h-5" />
-                        Generar PDFs ({carrito.reduce((sum, item) => sum + item.cantidad, 0)})
+                        Generar PDF ({carrito.reduce((sum, item) => sum + item.cantidad, 0)})
                       </>
                     )}
                   </button>
