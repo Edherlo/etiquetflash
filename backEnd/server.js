@@ -35,7 +35,7 @@ app.use(express.json({ limit: '50mb' }));
 const SIZES = {
   letter: { width: 612, height: 792 },
   etiquetaExhibicion: { width: 180, height: 240 }, // Se usará dinámicamente
-  etiquetaStock: { width: 113.39, height: 56.69 } // 4cm x 2cm en puntos (1cm = 28.35 puntos)
+  etiquetaStock: { width: 155.91, height: 127.56 } // 5.5cm x 4.5cm en puntos (1cm = 28.35 puntos)
 };
 
 // 🆕 Mapeo de fuentes
@@ -427,8 +427,8 @@ app.post('/api/etiquetas/precio-batch', async (req, res) => {
         // 🎨 Dibujar según el diseño seleccionado
         if (config.diseño === 'coolpanda') {
           // Diseño Cool Panda Frame con medio círculo superior
-          const earRadius = 8;
-          const earY = currentY - 3;
+          const earRadius = 12;
+          const earY = currentY - 5;
           const leftEarX = currentX + etiquetaWidth * 0.3;
           const rightEarX = currentX + etiquetaWidth * 0.7;
 
@@ -439,42 +439,42 @@ app.post('/api/etiquetas/precio-batch', async (req, res) => {
             .fillAndStroke('#000000', '#000000');
 
           // Cuerpo de la etiqueta
-          doc.roundedRect(currentX, currentY, etiquetaWidth, etiquetaHeight, 8)
-            .lineWidth(2)
+          doc.roundedRect(currentX, currentY, etiquetaWidth, etiquetaHeight, 12)
+            .lineWidth(3)
             .stroke('#000000');
 
           // Logo
           try {
-            doc.image(logoBuffer, currentX + 10, currentY + 5, { fit: [20, 20], align: 'center' });
+            doc.image(logoBuffer, currentX + 15, currentY + 12, { fit: [35, 35], align: 'center' });
           } catch (err) {}
 
           doc.font(fontInfo.regular)
-            .fontSize(5)
+            .fontSize(8)
             .fillColor('#666666')
-            .text('De:', currentX + 35, currentY + 8);
+            .text('De:', currentX + 55, currentY + 18);
           
-          doc.fontSize(8 * fontInfo.size)
+          doc.fontSize(14 * fontInfo.size)
             .fillColor(colorOriginal)
-            .text(`$${config.precioOriginal}`, currentX + 35, currentY + 13);
+            .text(`${config.precioOriginal}`, currentX + 55, currentY + 28);
           
-          doc.moveTo(currentX + 34, currentY + 20)
-            .lineTo(currentX + 75, currentY + 20)
+          doc.moveTo(currentX + 54, currentY + 41)
+            .lineTo(currentX + 125, currentY + 41)
             .stroke(colorOriginal);
 
-          const boxY = currentY + 25;
-          doc.rect(currentX + 35, boxY, 60, 25)
-            .lineWidth(2)
+          const boxY = currentY + 55;
+          doc.rect(currentX + 45, boxY, 90, 50)
+            .lineWidth(3)
             .strokeColor(colorDescuento)
             .fillColor('#F0FDF4')
             .fillAndStroke();
           
-          doc.fontSize(6 * fontInfo.size)
+          doc.fontSize(10 * fontInfo.size)
             .fillColor('#000000')
-            .text('A:', currentX + 40, boxY + 3);
+            .text('A:', currentX + 52, boxY + 6);
           
-          doc.fontSize(14 * fontInfo.size)
+          doc.fontSize(24 * fontInfo.size)
             .fillColor(colorDescuento)
-            .text(`$${config.precioDescuento}`, currentX + 40, boxY + 9, { width: 50, align: 'center' });
+            .text(`${config.precioDescuento}`, currentX + 50, boxY + 18, { width: 80, align: 'center' });
 
         } else {
           // Diseño Ovalado Clásico
@@ -482,40 +482,40 @@ app.post('/api/etiquetas/precio-batch', async (req, res) => {
           const centerY = currentY + etiquetaHeight / 2;
 
           doc.ellipse(centerX, centerY, etiquetaWidth / 2, etiquetaHeight / 2)
-            .lineWidth(2)
+            .lineWidth(3)
             .stroke('#000000');
 
           try {
-            doc.image(logoBuffer, currentX + 10, currentY + 5, { fit: [20, 20], align: 'center' });
+            doc.image(logoBuffer, currentX + 15, currentY + 12, { fit: [35, 35], align: 'center' });
           } catch (err) {}
 
           doc.font(fontInfo.regular)
-            .fontSize(5)
+            .fontSize(8)
             .fillColor('#666666')
-            .text('De:', currentX + 35, currentY + 8);
+            .text('De:', currentX + 55, currentY + 18);
           
-          doc.fontSize(8 * fontInfo.size)
+          doc.fontSize(14 * fontInfo.size)
             .fillColor(colorOriginal)
-            .text(`$${config.precioOriginal}`, currentX + 35, currentY + 13);
+            .text(`${config.precioOriginal}`, currentX + 55, currentY + 28);
           
-          doc.moveTo(currentX + 34, currentY + 20)
-            .lineTo(currentX + 75, currentY + 20)
+          doc.moveTo(currentX + 54, currentY + 41)
+            .lineTo(currentX + 125, currentY + 41)
             .stroke(colorOriginal);
 
-          const boxY = currentY + 25;
-          doc.rect(currentX + 35, boxY, 60, 25)
-            .lineWidth(2)
+          const boxY = currentY + 55;
+          doc.rect(currentX + 45, boxY, 90, 50)
+            .lineWidth(3)
             .strokeColor(colorDescuento)
             .fillColor('#F0FDF4')
             .fillAndStroke();
           
-          doc.fontSize(6 * fontInfo.size)
+          doc.fontSize(10 * fontInfo.size)
             .fillColor('#000000')
-            .text('A:', currentX + 40, boxY + 3);
+            .text('A:', currentX + 52, boxY + 6);
           
-          doc.fontSize(14 * fontInfo.size)
+          doc.fontSize(24 * fontInfo.size)
             .fillColor(colorDescuento)
-            .text(`$${config.precioDescuento}`, currentX + 40, boxY + 9, { width: 50, align: 'center' });
+            .text(`${config.precioDescuento}`, currentX + 50, boxY + 18, { width: 80, align: 'center' });
         }
 
         currentX += etiquetaWidth + spacing;
