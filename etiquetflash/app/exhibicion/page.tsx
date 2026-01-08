@@ -22,6 +22,11 @@ const COLORES = [
   { id: 'negro', nombre: 'Negro', valor: '#000000' }
 ];
 
+const DISENOS = [
+  { id: 'clasico', nombre: 'Rectángulo Clásico' },
+  { id: 'coolpanda', nombre: 'Cool Panda Frame' }
+];
+
 const getApiUrl = () => {
   if (typeof window !== 'undefined') {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -46,7 +51,9 @@ export default function Exhibicion() {
     especificaciones: ['X9B', '200 lite', '12 Se', '200', '90 lite'],
     cantidad: 1,
     fuente: 'helvetica',
-    color: 'rojo'
+    color: 'rojo',
+    diseño: 'clasico',
+    colorBorde: 'negro'
   });
 
   const agregarEspecificacion = () => {
@@ -89,7 +96,6 @@ export default function Exhibicion() {
     setLoading(true);
     
     try {
-      // ✅ AHORA USA EL NUEVO ENDPOINT BATCH - UNA SOLA PETICIÓN
       const response = await fetch(`${API_URL}/api/etiquetas/exhibicion-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,6 +132,19 @@ export default function Exhibicion() {
 
   const fuenteSeleccionada = FUENTES.find(f => f.id === etiqueta.fuente);
   const colorSeleccionado = COLORES.find(c => c.id === etiqueta.color);
+  const colorBordeSeleccionado = COLORES.find(c => c.id === etiqueta.colorBorde);
+
+  // Calcular dimensiones dinámicas para vista previa
+  const calcularDimensiones = () => {
+    const numEspecs = etiqueta.especificaciones.length;
+    // Ancho base 120px (6cm aprox) + 15px por cada especificación adicional
+    const width = Math.max(120, Math.min(240, 120 + (numEspecs * 15)));
+    // Alto base 80px (4cm aprox)
+    const height = 80;
+    return { width, height };
+  };
+
+  const dims = calcularDimensiones();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
@@ -154,6 +173,22 @@ export default function Exhibicion() {
           {/* Panel de Configuración */}
           <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-4 md:p-6">
             <h2 className="text-lg md:text-xl font-bold text-white mb-4 md:mb-6">Editar Etiqueta</h2>
+
+            {/* Selector de Diseño */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Diseño de Etiqueta
+              </label>
+              <select
+                value={etiqueta.diseño}
+                onChange={(e) => setEtiqueta({...etiqueta, diseño: e.target.value})}
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                {DISENOS.map(d => (
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
+                ))}
+              </select>
+            </div>
 
             <div className="mb-6">
               <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -224,20 +259,38 @@ export default function Exhibicion() {
               </select>
             </div>
 
-            {/* Selector de Color */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Color del Título
-              </label>
-              <select
-                value={etiqueta.color}
-                onChange={(e) => setEtiqueta({...etiqueta, color: e.target.value})}
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                {COLORES.map(c => (
-                  <option key={c.id} value={c.id}>🎨 {c.nombre}</option>
-                ))}
-              </select>
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              {/* Selector de Color del Título */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Color del Título
+                </label>
+                <select
+                  value={etiqueta.color}
+                  onChange={(e) => setEtiqueta({...etiqueta, color: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  {COLORES.map(c => (
+                    <option key={c.id} value={c.id}>🎨 {c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Selector de Color del Borde */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Color del Borde
+                </label>
+                <select
+                  value={etiqueta.colorBorde}
+                  onChange={(e) => setEtiqueta({...etiqueta, colorBorde: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  {COLORES.map(c => (
+                    <option key={c.id} value={c.id}>🖌️ {c.nombre}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="mb-6">
@@ -273,30 +326,82 @@ export default function Exhibicion() {
               <h2 className="text-lg md:text-xl font-bold text-white mb-4 md:mb-6">Vista Previa</h2>
               
               <div className="flex items-center justify-center">
-                <div 
-                  ref={printRef} 
-                  className="bg-white rounded-lg p-6 shadow-2xl" 
-                  style={{ width: '180px', minHeight: '240px' }}
-                >
-                  <h3 
-                    className="text-2xl font-bold mb-4 text-center break-words"
+                {etiqueta.diseño === 'coolpanda' ? (
+                  <div className="relative" style={{ width: `${dims.width}px`, height: `${dims.height + 20}px` }}>
+                    {/* Orejas de Panda - Medio círculo superior */}
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-12">
+                      <div 
+                        className="w-6 h-3 rounded-t-full overflow-hidden"
+                        style={{ backgroundColor: colorBordeSeleccionado?.valor }}
+                      ></div>
+                      <div 
+                        className="w-6 h-3 rounded-t-full overflow-hidden"
+                        style={{ backgroundColor: colorBordeSeleccionado?.valor }}
+                      ></div>
+                    </div>
+                    
+                    {/* Cuerpo de la etiqueta */}
+                    <div 
+                      className="bg-white rounded-2xl p-3 shadow-2xl h-full"
+                      style={{ 
+                        border: `3px solid ${colorBordeSeleccionado?.valor}`,
+                        width: `${dims.width}px`,
+                        height: `${dims.height}px`
+                      }}
+                    >
+                      <h3 
+                        className="text-base font-bold mb-2 text-center break-words"
+                        style={{ 
+                          color: colorSeleccionado?.valor,
+                          fontFamily: fuenteSeleccionada?.familia 
+                        }}
+                      >
+                        {etiqueta.titulo}
+                      </h3>
+                      
+                      <div className="space-y-1">
+                        {etiqueta.especificaciones.map((espec, index) => (
+                          <div key={index} className="text-blue-600 font-semibold text-xs break-words">
+                            • {espec}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    ref={printRef} 
+                    className="bg-white rounded-2xl p-3 shadow-2xl"
                     style={{ 
-                      color: colorSeleccionado?.valor,
-                      fontFamily: fuenteSeleccionada?.familia 
+                      border: `3px solid ${colorBordeSeleccionado?.valor}`,
+                      width: `${dims.width}px`,
+                      height: `${dims.height}px`
                     }}
                   >
-                    {etiqueta.titulo}
-                  </h3>
-                  
-                  <div className="space-y-2">
-                    {etiqueta.especificaciones.map((espec, index) => (
-                      <div key={index} className="text-blue-600 font-semibold text-sm break-words">
-                        • {espec}
-                      </div>
-                    ))}
+                    <h3 
+                      className="text-base font-bold mb-2 text-center break-words"
+                      style={{ 
+                        color: colorSeleccionado?.valor,
+                        fontFamily: fuenteSeleccionada?.familia 
+                      }}
+                    >
+                      {etiqueta.titulo}
+                    </h3>
+                    
+                    <div className="space-y-1">
+                      {etiqueta.especificaciones.map((espec, index) => (
+                        <div key={index} className="text-blue-600 font-semibold text-xs break-words">
+                          • {espec}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
+
+              <p className="text-slate-400 text-xs text-center mt-3">
+                Dimensión aprox: {Math.round(dims.width * 0.264)}mm × {Math.round(dims.height * 0.264)}mm
+              </p>
             </div>
 
             {/* Carrito */}
@@ -318,7 +423,7 @@ export default function Exhibicion() {
                             {item.titulo} ({item.cantidad}x)
                           </p>
                           <p className="text-slate-500 text-xs">
-                            {item.especificaciones.length} especificaciones
+                            {DISENOS.find(d => d.id === item.diseño)?.nombre || 'Clásico'} • {item.especificaciones.length} especificaciones
                           </p>
                         </div>
                         <button
@@ -357,5 +462,3 @@ export default function Exhibicion() {
     </div>
   );
 }
-
-

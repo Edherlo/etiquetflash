@@ -317,6 +317,9 @@ export default function Stock() {
                 onChange={(e) => setConfig({...config, cantidad: parseInt(e.target.value) || 1})}
                 className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-slate-400 text-xs mt-2">
+                Tamaño fijo: 4cm × 2cm
+              </p>
             </div>
 
             <button
@@ -331,15 +334,15 @@ export default function Stock() {
 
           {/* Panel Vista Previa y Carrito */}
           <div className="space-y-6">
-            {/* Vista Previa */}
+            {/* Vista Previa - Tamaño fijo 4cm x 2cm */}
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-4 md:p-6">
               <h2 className="text-lg font-bold text-white mb-4">Vista Previa</h2>
               
               <div className="flex justify-center mb-4">
                 {config.diseño === 'ovalado' ? (
-                  <div className="bg-white rounded-full border-4 border-black p-6 shadow-2xl" style={{ minWidth: '220px', minHeight: '140px' }}>
-                    <div className="flex flex-col items-center justify-center h-full gap-2">
-                      <div className="w-14 h-14 flex items-center justify-center">
+                  <div className="bg-white rounded-full border-4 border-black p-3 shadow-2xl" style={{ width: '150px', height: '75px' }}>
+                    <div className="flex flex-col items-center justify-center h-full gap-1">
+                      <div className="w-10 h-10 flex items-center justify-center">
                         {logo ? (
                           <img src={logo} alt="Logo" className="max-w-full max-h-full object-contain" />
                         ) : (
@@ -350,9 +353,9 @@ export default function Stock() {
                       </div>
                       
                       <div className="text-center">
-                        <p className="text-xs font-bold text-slate-600">De:</p>
+                        <p className="text-[8px] font-bold text-slate-600">De:</p>
                         <p 
-                          className="text-base font-bold line-through"
+                          className="text-xs font-bold line-through"
                           style={{ 
                             color: colorOriginalSeleccionado?.valor,
                             fontFamily: fuenteSeleccionada?.familia 
@@ -363,12 +366,12 @@ export default function Stock() {
                       </div>
 
                       <div 
-                        className="border-3 rounded-lg px-3 py-1"
-                        style={{ borderColor: colorDescuentoSeleccionado?.valor, borderWidth: '3px' }}
+                        className="border-2 rounded px-2 py-0.5"
+                        style={{ borderColor: colorDescuentoSeleccionado?.valor }}
                       >
-                        <p className="text-xs font-black text-slate-800">A:</p>
+                        <p className="text-[8px] font-black text-slate-800">A:</p>
                         <p 
-                          className="text-2xl font-black"
+                          className="text-sm font-black"
                           style={{ 
                             color: colorDescuentoSeleccionado?.valor,
                             fontFamily: fuenteSeleccionada?.familia 
@@ -380,55 +383,62 @@ export default function Stock() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white border-4 border-black rounded-3xl p-4 shadow-2xl relative" style={{ width: '220px', height: '150px' }}>
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex gap-12">
-                      <div className="w-8 h-8 bg-black rounded-full"></div>
-                      <div className="w-8 h-8 bg-black rounded-full"></div>
+                  <div className="relative" style={{ width: '150px', height: '85px' }}>
+                    {/* Orejas de Panda - Medio círculo superior */}
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-12">
+                      <div className="w-5 h-2.5 bg-black rounded-t-full overflow-hidden"></div>
+                      <div className="w-5 h-2.5 bg-black rounded-t-full overflow-hidden"></div>
                     </div>
                     
-                    <div className="flex flex-col items-center justify-center h-full gap-1">
-                      <div className="w-12 h-12 flex items-center justify-center">
-                        {logo ? (
-                          <img src={logo} alt="Logo" className="max-w-full max-h-full object-contain" />
-                        ) : (
-                          <div className="w-full h-full bg-slate-200 rounded-full flex items-center justify-center">
-                            <span className="text-slate-400 text-xs">Logo</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="text-center">
-                        <p className="text-xs font-bold text-slate-600">De:</p>
-                        <p 
-                          className="text-sm font-bold line-through"
-                          style={{ 
-                            color: colorOriginalSeleccionado?.valor,
-                            fontFamily: fuenteSeleccionada?.familia 
-                          }}
-                        >
-                          ${config.precioOriginal}
-                        </p>
-                      </div>
+                    <div className="bg-white border-4 border-black rounded-2xl p-2 shadow-2xl" style={{ width: '150px', height: '75px' }}>
+                      <div className="flex flex-col items-center justify-center h-full gap-1">
+                        <div className="w-9 h-9 flex items-center justify-center">
+                          {logo ? (
+                            <img src={logo} alt="Logo" className="max-w-full max-h-full object-contain" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-200 rounded-full flex items-center justify-center">
+                              <span className="text-slate-400 text-xs">Logo</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="text-center">
+                          <p className="text-[8px] font-bold text-slate-600">De:</p>
+                          <p 
+                            className="text-xs font-bold line-through"
+                            style={{ 
+                              color: colorOriginalSeleccionado?.valor,
+                              fontFamily: fuenteSeleccionada?.familia 
+                            }}
+                          >
+                            ${config.precioOriginal}
+                          </p>
+                        </div>
 
-                      <div 
-                        className="border-3 rounded-lg px-3 py-1"
-                        style={{ borderColor: colorDescuentoSeleccionado?.valor, borderWidth: '2px' }}
-                      >
-                        <p className="text-xs font-black text-slate-800">A:</p>
-                        <p 
-                          className="text-xl font-black"
-                          style={{ 
-                            color: colorDescuentoSeleccionado?.valor,
-                            fontFamily: fuenteSeleccionada?.familia 
-                          }}
+                        <div 
+                          className="border-2 rounded px-2 py-0.5"
+                          style={{ borderColor: colorDescuentoSeleccionado?.valor }}
                         >
-                          ${config.precioDescuento}
-                        </p>
+                          <p className="text-[8px] font-black text-slate-800">A:</p>
+                          <p 
+                            className="text-sm font-black"
+                            style={{ 
+                              color: colorDescuentoSeleccionado?.valor,
+                              fontFamily: fuenteSeleccionada?.familia 
+                            }}
+                          >
+                            ${config.precioDescuento}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
+
+              <p className="text-slate-400 text-xs text-center">
+                Tamaño: 4cm × 2cm
+              </p>
             </div>
 
             {/* Carrito */}
@@ -489,4 +499,3 @@ export default function Stock() {
     </div>
   );
 }
-
