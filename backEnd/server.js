@@ -62,13 +62,14 @@ const COLORES_MAP = {
 app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
-    message: '🚀 Backend de Etiquetas Flash funcionando - v3.1',
+    message: '🚀 Backend de Etiquetas Flash funcionando - v3.2',
     endpoints: [
       '/api/health',
       '/api/etiquetas/exhibicion (LEGACY)',
       '/api/etiquetas/exhibicion-batch (NEW - Ancho 5cm fijo, Alto dinámico)',
       '/api/etiquetas/stock (LEGACY)',
-      '/api/etiquetas/precio-batch (NEW - 5.5x3.5cm + Medio círculo)'
+      '/api/etiquetas/precio-batch (NEW - 5.5x3.5cm con descuento)',
+      '/api/etiquetas/precio-regular-batch (NEW - 5.5x3.5cm precio único)'
     ]
   });
 });
@@ -183,14 +184,12 @@ app.post('/api/etiquetas/exhibicion-batch', async (req, res) => {
       for (let i = 0; i < config.cantidad; i++) {
         // Verificar si cabe en la página actual
         if (currentX + etiquetaWidth > SIZES.letter.width - margin) {
-          // No cabe en horizontal, pasar a siguiente fila
           currentX = margin;
           currentY += maxHeightInRow + spacing;
           maxHeightInRow = 0;
         }
 
         if (currentY + etiquetaHeight > SIZES.letter.height - margin) {
-          // No cabe en la página, nueva página
           doc.addPage();
           currentX = margin;
           currentY = margin;
@@ -199,24 +198,21 @@ app.post('/api/etiquetas/exhibicion-batch', async (req, res) => {
 
         // 🎨 Dibujar según el diseño seleccionado
         if (config.diseño === 'coolpanda') {
-          // Diseño Cool Panda Frame con medio círculo
+          // ✅ FIX: Orejas sin espacio
           const earRadius = 10;
-          const earY = currentY - 4;
+          const earY = currentY + 1; // ⬅️ CORREGIDO
           const leftEarX = currentX + etiquetaWidth * 0.3;
           const rightEarX = currentX + etiquetaWidth * 0.7;
 
-          // Orejas - Solo medio círculo superior
           doc.arc(leftEarX, earY, earRadius, 0, Math.PI, true)
             .fillAndStroke(colorBorde, colorBorde);
           doc.arc(rightEarX, earY, earRadius, 0, Math.PI, true)
             .fillAndStroke(colorBorde, colorBorde);
 
-          // Cuerpo de la etiqueta
           doc.roundedRect(currentX, currentY, etiquetaWidth, etiquetaHeight, 12)
             .lineWidth(3)
             .stroke(colorBorde);
 
-          // Título
           doc.font(fontInfo.regular)
             .fontSize(14 * fontInfo.size)
             .fillColor(colorHex)
@@ -225,7 +221,6 @@ app.post('/api/etiquetas/exhibicion-batch', async (req, res) => {
               align: 'center'
             });
 
-          // Especificaciones
           let specY = currentY + 38;
           doc.font('Helvetica-Bold').fontSize(10).fillColor('#3B82F6');
           config.especificaciones.forEach((espec) => {
@@ -234,12 +229,10 @@ app.post('/api/etiquetas/exhibicion-batch', async (req, res) => {
           });
 
         } else {
-          // Diseño Clásico - Rectángulo con bordes redondeados
           doc.roundedRect(currentX, currentY, etiquetaWidth, etiquetaHeight, 10)
             .lineWidth(3)
             .stroke(colorBorde);
 
-          // Título
           doc.font(fontInfo.regular)
             .fontSize(14 * fontInfo.size)
             .fillColor(colorHex)
@@ -248,7 +241,6 @@ app.post('/api/etiquetas/exhibicion-batch', async (req, res) => {
               align: 'center'
             });
 
-          // Especificaciones
           let specY = currentY + 38;
           doc.font('Helvetica-Bold').fontSize(10).fillColor('#3B82F6');
           config.especificaciones.forEach((espec) => {
@@ -257,7 +249,6 @@ app.post('/api/etiquetas/exhibicion-batch', async (req, res) => {
           });
         }
 
-        // Avanzar a siguiente posición
         currentX += etiquetaWidth + spacing;
         maxHeightInRow = Math.max(maxHeightInRow, etiquetaHeight);
       }
@@ -377,7 +368,7 @@ app.post('/api/etiquetas/stock', async (req, res) => {
   }
 });
 
-// 🆕 NUEVO ENDPOINT - Sistema Acumulativo Precio 5.5x3.5cm con Medio Círculo
+// 🆕 ENDPOINT - Precio con Descuento (5.5x3.5cm)
 app.post('/api/etiquetas/precio-batch', async (req, res) => {
   try {
     const { etiquetas } = req.body;
@@ -393,7 +384,6 @@ app.post('/api/etiquetas/precio-batch', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=etiquetas-precio-${Date.now()}.pdf`);
     doc.pipe(res);
 
-    // Tamaño fijo: 5.5cm x 3.5cm
     const etiquetaWidth = SIZES.etiquetaStock.width;
     const etiquetaHeight = SIZES.etiquetaStock.height;
     const margin = 20;
@@ -407,7 +397,6 @@ app.post('/api/etiquetas/precio-batch', async (req, res) => {
     let currentY = margin;
     let etiquetasEnPagina = 0;
 
-    // Procesar cada configuración del carrito
     for (const config of etiquetas) {
       const logoBase64 = config.logo.replace(/^data:image\/\w+;base64,/, '');
       const logoBuffer = Buffer.from(logoBase64, 'base64');
@@ -416,7 +405,6 @@ app.post('/api/etiquetas/precio-batch', async (req, res) => {
       const colorOriginal = COLORES_MAP[config.colorOriginal] || '#EF4444';
       const colorDescuento = COLORES_MAP[config.colorDescuento] || '#22C55E';
       
-      // Generar la cantidad especificada de cada etiqueta
       for (let i = 0; i < config.cantidad; i++) {
         if (etiquetasEnPagina >= etiquetasPorPagina) {
           doc.addPage();
@@ -425,26 +413,21 @@ app.post('/api/etiquetas/precio-batch', async (req, res) => {
           etiquetasEnPagina = 0;
         }
 
-        // 🎨 Dibujar según el diseño seleccionado
         if (config.diseño === 'coolpanda') {
-          // Diseño Cool Panda Frame con medio círculo superior
           const earRadius = 10;
-          const earY = currentY - 4;
+          const earY = currentY + 1;
           const leftEarX = currentX + etiquetaWidth * 0.3;
           const rightEarX = currentX + etiquetaWidth * 0.7;
 
-          // Orejas - Solo medio círculo superior (arco de 0 a PI)
           doc.arc(leftEarX, earY, earRadius, 0, Math.PI, true)
             .fillAndStroke('#000000', '#000000');
           doc.arc(rightEarX, earY, earRadius, 0, Math.PI, true)
             .fillAndStroke('#000000', '#000000');
 
-          // Cuerpo de la etiqueta
           doc.roundedRect(currentX, currentY, etiquetaWidth, etiquetaHeight, 10)
             .lineWidth(3)
             .stroke('#000000');
 
-          // Logo
           try {
             doc.image(logoBuffer, currentX + 12, currentY + 10, { fit: [30, 30], align: 'center' });
           } catch (err) {}
@@ -478,7 +461,6 @@ app.post('/api/etiquetas/precio-batch', async (req, res) => {
             .text(`$${config.precioDescuento}`, currentX + 45, boxY + 14, { width: 70, align: 'center' });
 
         } else {
-          // Diseño Ovalado Clásico
           const centerX = currentX + etiquetaWidth / 2;
           const centerY = currentY + etiquetaHeight / 2;
 
@@ -536,17 +518,135 @@ app.post('/api/etiquetas/precio-batch', async (req, res) => {
   }
 });
 
+// 🆕 NUEVO ENDPOINT - Precio Regular (sin descuento, precio único)
+app.post('/api/etiquetas/precio-regular-batch', async (req, res) => {
+  try {
+    const { etiquetas } = req.body;
+    
+    if (!etiquetas || etiquetas.length === 0) {
+      return res.status(400).json({ error: 'No hay etiquetas para generar' });
+    }
+
+    console.log('📦 Generando PDF Precio Regular:', etiquetas.length, 'configuraciones');
+    
+    const doc = new PDFDocument({ size: 'LETTER', margin: 20 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=etiquetas-precio-regular-${Date.now()}.pdf`);
+    doc.pipe(res);
+
+    const etiquetaWidth = SIZES.etiquetaStock.width;
+    const etiquetaHeight = SIZES.etiquetaStock.height;
+    const margin = 20;
+    const spacing = 15;
+
+    const cols = Math.floor((SIZES.letter.width - 2 * margin) / (etiquetaWidth + spacing));
+    const rows = Math.floor((SIZES.letter.height - 2 * margin) / (etiquetaHeight + spacing));
+    const etiquetasPorPagina = cols * rows;
+
+    let currentX = margin;
+    let currentY = margin;
+    let etiquetasEnPagina = 0;
+
+    for (const config of etiquetas) {
+      const logoBase64 = config.logo.replace(/^data:image\/\w+;base64,/, '');
+      const logoBuffer = Buffer.from(logoBase64, 'base64');
+      
+      const fontInfo = FUENTES_MAP[config.fuente] || FUENTES_MAP['helvetica'];
+      const colorPrecio = COLORES_MAP[config.colorPrecio] || '#22C55E';
+      
+      for (let i = 0; i < config.cantidad; i++) {
+        if (etiquetasEnPagina >= etiquetasPorPagina) {
+          doc.addPage();
+          currentX = margin;
+          currentY = margin;
+          etiquetasEnPagina = 0;
+        }
+
+        if (config.diseño === 'coolpanda') {
+          const earRadius = 10;
+          const earY = currentY + 1;
+          const leftEarX = currentX + etiquetaWidth * 0.3;
+          const rightEarX = currentX + etiquetaWidth * 0.7;
+
+          doc.arc(leftEarX, earY, earRadius, 0, Math.PI, true)
+            .fillAndStroke('#000000', '#000000');
+          doc.arc(rightEarX, earY, earRadius, 0, Math.PI, true)
+            .fillAndStroke('#000000', '#000000');
+
+          doc.roundedRect(currentX, currentY, etiquetaWidth, etiquetaHeight, 10)
+            .lineWidth(3)
+            .stroke('#000000');
+
+          try {
+            doc.image(logoBuffer, currentX + 25, currentY + 15, { fit: [40, 40], align: 'center' });
+          } catch (err) {}
+
+          const boxY = currentY + 55;
+          doc.rect(currentX + 25, boxY, 105, 30)
+            .lineWidth(4)
+            .strokeColor(colorPrecio)
+            .fillColor('#F0FDF4')
+            .fillAndStroke();
+          
+          doc.font(fontInfo.regular)
+            .fontSize(24 * fontInfo.size)
+            .fillColor(colorPrecio)
+            .text(`$${config.precio}`, currentX + 30, boxY + 5, { width: 95, align: 'center' });
+
+        } else {
+          const centerX = currentX + etiquetaWidth / 2;
+          const centerY = currentY + etiquetaHeight / 2;
+
+          doc.ellipse(centerX, centerY, etiquetaWidth / 2, etiquetaHeight / 2)
+            .lineWidth(3)
+            .stroke('#000000');
+
+          try {
+            doc.image(logoBuffer, currentX + 25, currentY + 15, { fit: [40, 40], align: 'center' });
+          } catch (err) {}
+
+          const boxY = currentY + 55;
+          doc.rect(currentX + 25, boxY, 105, 30)
+            .lineWidth(4)
+            .strokeColor(colorPrecio)
+            .fillColor('#F0FDF4')
+            .fillAndStroke();
+          
+          doc.font(fontInfo.regular)
+            .fontSize(24 * fontInfo.size)
+            .fillColor(colorPrecio)
+            .text(`$${config.precio}`, currentX + 30, boxY + 5, { width: 95, align: 'center' });
+        }
+
+        currentX += etiquetaWidth + spacing;
+        etiquetasEnPagina++;
+
+        if (etiquetasEnPagina % cols === 0) {
+          currentX = margin;
+          currentY += etiquetaHeight + spacing;
+        }
+      }
+    }
+
+    doc.end();
+  } catch (error) {
+    console.error('❌ Error generando PDF:', error);
+    res.status(500).json({ error: 'Error al generar PDF', details: error.message });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    message: 'Backend funcionando correctamente - v3.1',
+    message: 'Backend funcionando correctamente - v3.2',
     timestamp: new Date().toISOString(),
     endpoints: {
       legacy: ['/api/etiquetas/exhibicion', '/api/etiquetas/stock'],
       new: [
-        '/api/etiquetas/exhibicion-batch (Ancho 5cm fijo, Alto dinámico)',
-        '/api/etiquetas/precio-batch (5.5x3.5cm + Medio círculo)'
+        '/api/etiquetas/exhibicion-batch (5cm fijo × alto dinámico)',
+        '/api/etiquetas/precio-batch (5.5x3.5cm con descuento)',
+        '/api/etiquetas/precio-regular-batch (5.5x3.5cm precio único)'
       ]
     }
   });
@@ -561,11 +661,12 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Backend corriendo en puerto ${PORT} - v3.1`);
+  console.log(`🚀 Backend corriendo en puerto ${PORT} - v3.2`);
   console.log(`🔧 Endpoints disponibles:`);
   console.log(`   GET  /api/health`);
   console.log(`   POST /api/etiquetas/exhibicion (legacy)`);
-  console.log(`   POST /api/etiquetas/exhibicion-batch (NEW - 5cm ancho fijo)`);
+  console.log(`   POST /api/etiquetas/exhibicion-batch (5cm × dinámico)`);
   console.log(`   POST /api/etiquetas/stock (legacy)`);
-  console.log(`   POST /api/etiquetas/precio-batch (NEW - 5.5x3.5cm)`);
+  console.log(`   POST /api/etiquetas/precio-batch (con descuento)`);
+  console.log(`   POST /api/etiquetas/precio-regular-batch (precio único) ⭐ NEW`);
 });

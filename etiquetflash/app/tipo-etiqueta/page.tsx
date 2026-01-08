@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Tag, Package } from 'lucide-react';
+import { ArrowLeft, Tag, Package, DollarSign } from 'lucide-react';
 
 export default function TipoEtiqueta() {
   const router = useRouter();
@@ -18,10 +18,18 @@ export default function TipoEtiqueta() {
     {
       id: 'stock',
       titulo: 'Productos en Stock',
-      descripcion: 'Etiquetas de precio formato ovalado',
+      descripcion: 'Etiquetas con precio original y descuento',
       icono: Package,
       color: 'from-blue-500 to-blue-600',
       ruta: '/stock'
+    },
+    {
+      id: 'precio-regular',
+      titulo: 'Precio Regular',
+      descripcion: 'Etiquetas con precio único sin descuento',
+      icono: DollarSign,
+      color: 'from-green-500 to-green-600',
+      ruta: '/precio-regular'
     }
   ];
 
@@ -47,7 +55,7 @@ export default function TipoEtiqueta() {
         </div>
 
         {/* Grid de Opciones */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {tipos.map((tipo) => {
             const Icono = tipo.icono;
             return (
@@ -87,4 +95,3 @@ export default function TipoEtiqueta() {
     </div>
   );
 }
-
