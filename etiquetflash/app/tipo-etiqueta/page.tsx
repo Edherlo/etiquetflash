@@ -29,7 +29,7 @@ export default function TipoEtiqueta() {
       descripcion: 'Etiquetas con precio único sin descuento',
       icono: DollarSign,
       color: 'from-green-500 to-green-600',
-      ruta: '/precio-regular'
+      ruta: '/precio'
     }
   ];
 
