@@ -134,13 +134,13 @@ export default function Exhibicion() {
   const colorSeleccionado = COLORES.find(c => c.id === etiqueta.color);
   const colorBordeSeleccionado = COLORES.find(c => c.id === etiqueta.colorBorde);
 
-  // Calcular dimensiones dinámicas para vista previa
+  // ✅ CAMBIO: Ancho fijo 5cm, Alto dinámico según especificaciones
   const calcularDimensiones = () => {
     const numEspecs = etiqueta.especificaciones.length;
-    // Ancho base 120px (6cm aprox) + 15px por cada especificación adicional
-    const width = Math.max(120, Math.min(240, 120 + (numEspecs * 15)));
-    // Alto base 80px (4cm aprox)
-    const height = 80;
+    // Ancho fijo: 5cm = 140px aprox
+    const width = 140;
+    // Alto base: 80px (3cm) + 18px por cada especificación
+    const height = Math.max(80, 80 + (numEspecs * 18));
     return { width, height };
   };
 
@@ -306,7 +306,7 @@ export default function Exhibicion() {
                 className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
               />
               <p className="text-slate-400 text-xs mt-2">
-                Se acomodarán automáticamente en hojas tamaño carta
+                Ancho fijo 5cm • Alto crece según especificaciones
               </p>
             </div>
 
@@ -329,13 +329,13 @@ export default function Exhibicion() {
                 {etiqueta.diseño === 'coolpanda' ? (
                   <div className="relative" style={{ width: `${dims.width}px`, height: `${dims.height + 20}px` }}>
                     {/* Orejas de Panda - Medio círculo superior */}
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-12">
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-8">
                       <div 
-                        className="w-6 h-3 rounded-t-full overflow-hidden"
+                        className="w-5 h-2.5 rounded-t-full overflow-hidden"
                         style={{ backgroundColor: colorBordeSeleccionado?.valor }}
                       ></div>
                       <div 
-                        className="w-6 h-3 rounded-t-full overflow-hidden"
+                        className="w-5 h-2.5 rounded-t-full overflow-hidden"
                         style={{ backgroundColor: colorBordeSeleccionado?.valor }}
                       ></div>
                     </div>
@@ -350,7 +350,7 @@ export default function Exhibicion() {
                       }}
                     >
                       <h3 
-                        className="text-base font-bold mb-2 text-center break-words"
+                        className="text-sm font-bold mb-2 text-center break-words"
                         style={{ 
                           color: colorSeleccionado?.valor,
                           fontFamily: fuenteSeleccionada?.familia 
@@ -379,7 +379,7 @@ export default function Exhibicion() {
                     }}
                   >
                     <h3 
-                      className="text-base font-bold mb-2 text-center break-words"
+                      className="text-sm font-bold mb-2 text-center break-words"
                       style={{ 
                         color: colorSeleccionado?.valor,
                         fontFamily: fuenteSeleccionada?.familia 
@@ -400,7 +400,7 @@ export default function Exhibicion() {
               </div>
 
               <p className="text-slate-400 text-xs text-center mt-3">
-                Dimensión aprox: {Math.round(dims.width * 0.264)}mm × {Math.round(dims.height * 0.264)}mm
+                Tamaño: 5cm × {Math.round(dims.height * 0.264 / 10)}cm
               </p>
             </div>
 
