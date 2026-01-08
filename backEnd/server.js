@@ -35,7 +35,7 @@ app.use(express.json({ limit: '50mb' }));
 const SIZES = {
   letter: { width: 612, height: 792 },
   etiquetaExhibicion: { width: 180, height: 240 }, // Se usará dinámicamente
-  etiquetaStock: { width: 155.91, height: 127.56 } // 5.5cm x 4.5cm en puntos (1cm = 28.35 puntos)
+  etiquetaStock: { width: 155.91, height: 99.23 } // 5.5cm x 3.5cm en puntos (1cm = 28.35 puntos)
 };
 
 // 🆕 Mapeo de fuentes
